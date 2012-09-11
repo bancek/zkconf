@@ -1,0 +1,13 @@
+#for $sid, $servername, $clientport, $port1, $port2 in $serverlist
+[program:zk$clientport]
+command=java -cp ./*:. org.apache.zookeeper.server.quorum.QuorumPeerMain ./$servername:$clientport/zoo.cfg
+directory=$serverspath
+user=zkuser
+stdout_logfile=$serverspath/$servername:$clientport/zoo.log
+autostart=true
+autorestart=true
+redirect_stderr=True
+
+#end for
+[group:zookeeper]
+programs=#echo ','.join(['zk%d' % x[2] for x in $serverlist])

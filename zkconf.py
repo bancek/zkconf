@@ -28,6 +28,7 @@ from zoocfg import zoocfg
 from start import start
 from stop import stop
 from status import status
+from supervisorconf import supervisorconf
 
 usage = "usage: %prog [options] zookeeper_dir output_dir"
 parser = OptionParser(usage=usage)
@@ -49,6 +50,10 @@ parser.add_option("", "--maxClientCnxns", dest="maxclientcnxns", type='int',
                   default=10, help="maxClientCnxns of server config (default unspecified, ZK default)")
 parser.add_option("", "--electionAlg", dest="electionalg", type='int',
                   default=3, help="electionAlg of server config (default unspecified, ZK default - FLE)")
+parser.add_option("", "--user", dest="user",
+                  default="zookeeper", help="system user that will run zookeeper server")
+parser.add_option("", "--supervisor", dest="use_supervisor", action="store_true",
+                  help="use supervisor for managing server processes")
 
 (options, args) = parser.parse_args()
 
@@ -92,20 +97,6 @@ def writescript(name, content):
     writefile(p, content)
     os.chmod(p, 0755)
 
-def copyjar(optional, srcs, jar, dstpath, dst):
-    for src in srcs:
-        try:
-            shutil.copyfile(glob.glob(os.path.join(os.path.join(*src), jar))[0],
-                            os.path.join(dstpath, dst))
-            return
-        except:
-            pass
-
-    if optional: return
-
-    print("unable to find %s in %s" % (dst, args[0]))
-    exit(1)
-
 if __name__ == '__main__':
     os.mkdir(args[1])
 
@@ -134,13 +125,20 @@ if __name__ == '__main__':
         writefile(os.path.join(serverdir, "zoo.cfg"), str(conf))
         writefile(os.path.join(serverdir, "data", "myid"), str(sid))
 
-    writescript("start.sh", str(start(searchList=[{'serverlist' : serverlist}])))
-    writescript("stop.sh", str(stop(searchList=[{'serverlist' : serverlist}])))
-    writescript("status.sh", str(status(searchList=[{'serverlist' : serverlist}])))
+    if options.use_supervisor:
+        writescript("zookeeper.conf", str(supervisorconf(searchList=[{
+            'serverlist': serverlist,
+            'serverspath': os.path.abspath(args[1]),
+            'user': options.user
+        }])))
+    else:
+        writescript("start.sh", str(start(searchList=[{'serverlist' : serverlist}])))
+        writescript("stop.sh", str(stop(searchList=[{'serverlist' : serverlist}])))
+        writescript("status.sh", str(status(searchList=[{'serverlist' : serverlist}])))
 
-    content = """#!/bin/bash
+        content = """#!/bin/bash
 java -cp ./*:. org.apache.zookeeper.ZooKeeperMain -server "$1"\n"""
-    writescript("cli.sh", content)
+        writescript("cli.sh", content)
 
     for f in glob.glob(os.path.join(args[0], 'lib', '*.jar')):
         shutil.copy(f, args[1])

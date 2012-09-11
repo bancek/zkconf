@@ -4,3 +4,4 @@ start.py
 status.py
 stop.py
 zoocfg.py
+supervisorconf.py
