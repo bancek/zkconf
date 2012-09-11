@@ -2,7 +2,7 @@
 [program:zk$clientport]
 command=java -cp ./*:. org.apache.zookeeper.server.quorum.QuorumPeerMain ./$servername:$clientport/zoo.cfg
 directory=$serverspath
-user=zkuser
+user=$user
 stdout_logfile=$serverspath/$servername:$clientport/zoo.log
 autostart=true
 autorestart=true
